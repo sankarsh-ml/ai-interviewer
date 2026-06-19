@@ -1,8 +1,8 @@
-from keyword_match import calculate_skill_match
-from education_match import calculate_education_match
-from experience_match import calculate_experience_match
-from project_quality import calculate_project_quality
-from ats_calculator import calculate_final_ats
+from app.services.keyword_match import calculate_skill_match
+from app.services.education_match import calculate_education_match
+from app.services.experience_match import calculate_experience_match
+from app.services.project_quality import calculate_project_quality
+from app.services.ats_calculator import calculate_final_ats
 
 
 def calculate_ats(

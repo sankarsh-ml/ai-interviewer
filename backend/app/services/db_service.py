@@ -1,88 +1,88 @@
-from datetime import datetime, timezone
-import os
+import json
+import uuid
 from pathlib import Path
 
-from bson import ObjectId
-from dotenv import load_dotenv
-from pymongo import MongoClient
-from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+DATA_DIR = BASE_DIR / "data"
+
+JOBS_FILE = DATA_DIR / "jobs.json"
+APPLICATIONS_FILE = DATA_DIR / "applications.json"
 
 
-ROOT_DIR = Path(__file__).resolve().parents[3]
-load_dotenv(ROOT_DIR / ".env")
+def _load_json(file_path):
+    if not file_path.exists():
+        return []
 
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-MONGODB_DB = os.getenv("MONGODB_DB", "novac_3")
-COLLECTION_NAME = "resume_applications"
-
-client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3000)
-database = client[MONGODB_DB]
-resume_applications = database[COLLECTION_NAME]
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-class MongoConnectionError(Exception):
-    pass
+def _save_json(file_path, data):
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
 
-def save_resume_application(data: dict) -> str:
-    now = datetime.now(timezone.utc)
-    document = {
-        **data,
-        "ats_status": data.get("ats_status", "pending"),
-        "created_at": data.get("created_at", now),
-        "updated_at": data.get("updated_at", now),
+# -------------------------
+# JOBS
+# -------------------------
+
+def save_job(job_data: dict):
+
+    jobs = _load_json(JOBS_FILE)
+
+    job = {
+        "id": str(uuid.uuid4()),
+        **job_data,
     }
 
-    try:
-        _check_mongo_connection()
-        result = resume_applications.insert_one(document)
-        return str(result.inserted_id)
-    except (ServerSelectionTimeoutError, PyMongoError) as exc:
-        raise MongoConnectionError from exc
+    jobs.append(job)
+
+    _save_json(JOBS_FILE, jobs)
+
+    return job["id"]
 
 
-def get_resume_application(application_id: str) -> dict | None:
-    if not ObjectId.is_valid(application_id):
-        return None
+def get_all_jobs():
 
-    try:
-        _check_mongo_connection()
-        document = resume_applications.find_one({"_id": ObjectId(application_id)})
-    except (ServerSelectionTimeoutError, PyMongoError) as exc:
-        raise MongoConnectionError from exc
-
-    if not document:
-        return None
-
-    return _convert_object_id(document)
+    return _load_json(JOBS_FILE)
 
 
-def update_ats_status(application_id: str, status: str) -> bool:
-    if not ObjectId.is_valid(application_id):
-        return False
+# -------------------------
+# APPLICATIONS
+# -------------------------
 
-    try:
-        _check_mongo_connection()
-        result = resume_applications.update_one(
-            {"_id": ObjectId(application_id)},
-            {
-                "$set": {
-                    "ats_status": status,
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            },
-        )
-    except (ServerSelectionTimeoutError, PyMongoError) as exc:
-        raise MongoConnectionError from exc
+def save_resume_application(data: dict):
 
-    return result.matched_count == 1
+    applications = _load_json(APPLICATIONS_FILE)
 
+    application = {
+        "application_id": str(uuid.uuid4()),
+        **data,
+    }
 
-def _check_mongo_connection():
-    client.admin.command("ping")
+    applications.append(application)
 
+    _save_json(APPLICATIONS_FILE, applications)
 
-def _convert_object_id(document: dict) -> dict:
-    converted_document = dict(document)
-    converted_document["_id"] = str(converted_document["_id"])
-    return converted_document
+    return application["application_id"]
+def get_job_by_id(job_id: str):
+
+    jobs = _load_json(JOBS_FILE)
+
+    for job in jobs:
+        if job["id"] == job_id:
+            return job
+
+    return None
+
+def get_application_by_id(application_id: str):
+
+    applications = _load_json(APPLICATIONS_FILE)
+
+    for application in applications:
+        if application["application_id"] == application_id:
+            return application
+
+    return None

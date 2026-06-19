@@ -1,9 +1,9 @@
 import "../styles/HomePage.css";
 
+function HomePage({ onOpenStudent, onOpenAdmin }) {
 
-function HomePage({ onOpenStudent }) {
   const handleAdminClick = () => {
-    alert("Admin portal coming soon");
+    onOpenAdmin();
   };
 
   return (
@@ -11,23 +11,34 @@ function HomePage({ onOpenStudent }) {
       <section className="home-content">
         <p className="eyebrow">Resume Text Extractor</p>
         <h1>AI Resume Screener</h1>
-        <p className="subtitle">Upload resumes and prepare them for ATS screening</p>
+        <p className="subtitle">
+          Upload resumes and prepare them for ATS screening
+        </p>
 
         <div className="role-grid">
-          <button className="role-card" type="button" onClick={onOpenStudent}>
+
+          <button
+            className="role-card"
+            type="button"
+            onClick={onOpenStudent}
+          >
             <span className="role-letter">S</span>
             <span>Student</span>
           </button>
 
-          <button className="role-card" type="button" onClick={handleAdminClick}>
+          <button
+            className="role-card"
+            type="button"
+            onClick={handleAdminClick}
+          >
             <span className="role-letter admin">A</span>
             <span>Admin</span>
           </button>
+
         </div>
       </section>
     </main>
   );
 }
-
 
 export default HomePage;

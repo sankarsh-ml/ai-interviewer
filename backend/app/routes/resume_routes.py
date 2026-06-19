@@ -2,8 +2,8 @@ from pathlib import Path
 import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-
-from app.services.db_service import MongoConnectionError, save_resume_application
+from fastapi import Form
+from app.services.db_service import  save_resume_application
 from app.services.resume_parser import (
     clean_text,
     extract_sections,
@@ -56,23 +56,16 @@ async def _process_resume_upload(file: UploadFile):
         },
     }
 
-
 @router.post("/upload")
-async def upload_resume(file: UploadFile = File(...)):
+async def upload_resume(file: UploadFile = File(...),job_id: str = Form(...)):
     resume_data = await _process_resume_upload(file)
 
-    try:
-        application_id = save_resume_application(
-            {
-                **resume_data,
-                "ats_status": "pending",
-            }
-        )
-    except MongoConnectionError as exc:
-        raise HTTPException(
-            status_code=500,
-            detail="MongoDB connection failed. Make sure MongoDB is running.",
-        ) from exc
+    application_id = save_resume_application(
+    {
+        **resume_data,
+        "job_id": job_id,
+        "ats_status": "pending",
+    })
 
     return {
         "success": True,
@@ -88,7 +81,6 @@ async def upload_resume(file: UploadFile = File(...)):
             "next_step": "ats_screening",
         },
     }
-
 
 @router.post("/extract-text")
 async def extract_resume_text(file: UploadFile = File(...)):
