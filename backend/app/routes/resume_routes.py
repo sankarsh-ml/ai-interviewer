@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from app.services.db_service import MongoConnectionError, save_resume_application
 from app.services.resume_parser import (
     clean_text,
     extract_sections,
@@ -10,14 +11,13 @@ from app.services.resume_parser import (
 )
 
 
-router = APIRouter(prefix="/api/resume", tags=["Resume"])
+router = APIRouter()
 
 APP_DIR = Path(__file__).resolve().parents[1]
 RESUME_STORAGE_DIR = APP_DIR / "storage" / "resumes"
 
 
-@router.post("/extract-text")
-async def extract_resume_text(file: UploadFile = File(...)):
+async def _process_resume_upload(file: UploadFile):
     original_file_name = Path(file.filename or "").name
 
     if not original_file_name.lower().endswith(".pdf"):
@@ -41,20 +41,70 @@ async def extract_resume_text(file: UploadFile = File(...)):
     sections_detected = extract_sections(extracted_text)
 
     return {
+        "file_name": original_file_name,
+        "saved_file_name": saved_file_name,
+        "file_path": str(saved_file_path),
+        "file_type": "pdf",
+        "total_pages": extracted["total_pages"],
+        "text_length": len(extracted_text),
+        "word_count": len(extracted_text.split()),
+        "extracted_text": extracted_text,
+        "ats_ready_data": {
+            "raw_text": extracted_text,
+            "normalized_text": extracted_text,
+            "sections_detected": sections_detected,
+        },
+    }
+
+
+@router.post("/upload")
+async def upload_resume(file: UploadFile = File(...)):
+    resume_data = await _process_resume_upload(file)
+
+    try:
+        application_id = save_resume_application(
+            {
+                **resume_data,
+                "ats_status": "pending",
+            }
+        )
+    except MongoConnectionError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="MongoDB connection failed. Make sure MongoDB is running.",
+        ) from exc
+
+    return {
+        "success": True,
+        "message": "Resume uploaded and stored successfully",
+        "data": {
+            "application_id": application_id,
+            "file_name": resume_data["file_name"],
+            "file_type": resume_data["file_type"],
+            "total_pages": resume_data["total_pages"],
+            "text_length": resume_data["text_length"],
+            "word_count": resume_data["word_count"],
+            "ats_status": "pending",
+            "next_step": "ats_screening",
+        },
+    }
+
+
+@router.post("/extract-text")
+async def extract_resume_text(file: UploadFile = File(...)):
+    resume_data = await _process_resume_upload(file)
+
+    return {
         "success": True,
         "message": "Resume text extracted successfully",
         "data": {
-            "file_name": original_file_name,
-            "saved_file_name": saved_file_name,
-            "file_type": "pdf",
-            "total_pages": extracted["total_pages"],
-            "text_length": len(extracted_text),
-            "word_count": len(extracted_text.split()),
-            "extracted_text": extracted_text,
-            "ats_ready_data": {
-                "raw_text": extracted_text,
-                "normalized_text": extracted_text,
-                "sections_detected": sections_detected,
-            },
+            "file_name": resume_data["file_name"],
+            "saved_file_name": resume_data["saved_file_name"],
+            "file_type": resume_data["file_type"],
+            "total_pages": resume_data["total_pages"],
+            "text_length": resume_data["text_length"],
+            "word_count": resume_data["word_count"],
+            "extracted_text": resume_data["extracted_text"],
+            "ats_ready_data": resume_data["ats_ready_data"],
         },
     }
