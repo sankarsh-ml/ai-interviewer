@@ -4,7 +4,7 @@ import AtsScreeningPage from "./pages/AtsScreeningPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import InterviewPage from "./pages/InterviewPage.jsx";
 import StudentUploadPage from "./pages/StudentUploadPage.jsx";
-
+import HRDashboardPage from "./pages/HRDashboardPage.jsx";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("home");
@@ -38,7 +38,13 @@ function App() {
     return <InterviewPage onBackHome={handleBackHome} />;
   }
 
-  return <HomePage onOpenStudent={() => setCurrentPage("student")} />;
+  if (currentPage === "admin") {
+  return (
+    <HRDashboardPage
+      onBack={handleBackHome}/>);
+    }
+
+    return (<HomePage onOpenStudent={() => setCurrentPage("student")} onOpenAdmin={() => setCurrentPage("admin")}/>);
 }
 
 

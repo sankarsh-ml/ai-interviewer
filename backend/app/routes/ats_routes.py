@@ -1,39 +1,69 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
-from app.services.db_service import MongoConnectionError, update_ats_status
+from app.services.db_service import (
+    get_application_by_id,
+    get_job_by_id,
+)
 
+from app.services.ats_engine import calculate_ats
 
 router = APIRouter()
 
 
-class AtsDecisionRequest(BaseModel):
-    decision: str
+@router.get("/score/{application_id}")
+def score_resume(application_id: str):
 
+    application = get_application_by_id(
+        application_id
+    )
 
-@router.post("/{application_id}/decision")
-def save_ats_decision(application_id: str, request: AtsDecisionRequest):
-    decision = request.decision.lower().strip()
-
-    if decision not in {"passed", "failed"}:
-        raise HTTPException(status_code=400, detail="Decision must be passed or failed")
-
-    try:
-        was_updated = update_ats_status(application_id, decision)
-    except MongoConnectionError as exc:
+    if not application:
         raise HTTPException(
-            status_code=500,
-            detail="MongoDB connection failed. Make sure MongoDB is running.",
-        ) from exc
+            status_code=404,
+            detail="Application not found"
+        )
 
-    if not was_updated:
-        raise HTTPException(status_code=404, detail="Resume application not found")
+    job = get_job_by_id(
+        application["job_id"]
+    )
+
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found"
+        )
+
+    sections = (
+        application["ats_ready_data"]
+        ["sections_detected"]
+    )
+
+    resume_data = {
+        "data": {
+
+            "candidate_name":
+                application["file_name"],
+
+            "skills":
+                sections["skills"]["items"],
+
+            "education":
+                sections["education"]["items"],
+
+            "projects":
+                sections["projects"]["items"],
+
+            "experience":
+                sections["experience"]["items"],
+        }
+    }
+
+    result = calculate_ats(
+        resume_data,
+        job
+    )
 
     return {
         "success": True,
-        "message": "ATS decision saved",
-        "data": {
-            "application_id": application_id,
-            "ats_status": decision,
-        },
+        "result": result,
     }

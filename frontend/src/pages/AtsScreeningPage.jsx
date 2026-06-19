@@ -1,21 +1,54 @@
-import { useState } from "react";
-
-import { submitAtsDecision } from "../api/resumeApi.js";
+import { useEffect, useState } from "react";
 import "../styles/AtsScreeningPage.css";
 
-
-function AtsScreeningPage({ applicationSummary, onBackHome, onPassed }) {
+function AtsScreeningPage({
+  applicationSummary,
+  onBackHome,
+  onPassed,
+}) {
+  const [loading, setLoading] = useState(true);
+  const [atsResult, setAtsResult] = useState(null);
   const [error, setError] = useState("");
-  const [loadingDecision, setLoadingDecision] = useState("");
-  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    runATS();
+  }, []);
+
+  const runATS = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/ats/score/${applicationSummary.application_id}`
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAtsResult(data.result);
+      } else {
+        setError("ATS scoring failed");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Could not connect to ATS service");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!applicationSummary) {
     return (
       <main className="ats-page">
         <section className="ats-panel">
           <h1>ATS Screening</h1>
-          <p className="ats-message">No resume application is available.</p>
-          <button className="ats-home-button" type="button" onClick={onBackHome}>
+
+          <p>No resume uploaded.</p>
+
+          <button
+            className="ats-home-button"
+            onClick={onBackHome}
+          >
             Back Home
           </button>
         </section>
@@ -23,74 +56,153 @@ function AtsScreeningPage({ applicationSummary, onBackHome, onPassed }) {
     );
   }
 
-  const handleDecision = async (decision) => {
-    setError("");
-    setLoadingDecision(decision);
+  if (loading) {
+    return (
+      <main className="ats-page">
+        <section className="ats-panel">
+          <h1>Running ATS Screening...</h1>
+          <p>Please wait while we evaluate the resume.</p>
+        </section>
+      </main>
+    );
+  }
 
-    try {
-      await submitAtsDecision(applicationSummary.application_id, decision);
-      if (decision === "failed") {
-        setFailed(true);
-      } else {
-        onPassed();
-      }
-    } catch (apiError) {
-      setError(apiError.message || "Could not save ATS decision.");
-    } finally {
-      setLoadingDecision("");
-    }
-  };
+  if (error) {
+    return (
+      <main className="ats-page">
+        <section className="ats-panel">
+          <h1>ATS Screening</h1>
+
+          <p className="error-message">
+            {error}
+          </p>
+
+          <button
+            className="ats-home-button"
+            onClick={onBackHome}
+          >
+            Back Home
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  const passed = atsResult.shortlisted;
 
   return (
     <main className="ats-page">
       <section className="ats-panel">
-        <p className="eyebrow">Screening Pipeline</p>
-        <h1>ATS Screening</h1>
-        <p className="ats-message">Your resume has been submitted for ATS screening.</p>
-        <p className="ats-note">Temporary manual ATS decision page for testing.</p>
+
+        <p className="eyebrow">
+          Screening Pipeline
+        </p>
+
+        <h1>ATS Screening Result</h1>
 
         <div className="ats-summary-grid">
-          <SummaryItem label="File name" value={applicationSummary.file_name} />
-          <SummaryItem label="Total pages" value={applicationSummary.total_pages} />
-          <SummaryItem label="Word count" value={applicationSummary.word_count} />
-          <SummaryItem label="Text length" value={applicationSummary.text_length} />
+
+          <SummaryItem
+            label="Candidate"
+            value={atsResult.candidate_name}
+          />
+
+          <SummaryItem
+            label="ATS Score"
+            value={`${atsResult.final_score}%`}
+          />
+
+          <SummaryItem
+            label="Matched Skills"
+            value={atsResult.matched_skills.length}
+          />
+
+          <SummaryItem
+            label="Missing Skills"
+            value={atsResult.missing_skills.length}
+          />
+
         </div>
 
-        {failed ? (
-          <div className="rejection-box">
-            <h2>ATS Failed</h2>
-            <p>Sorry, your resume did not pass the ATS screening for this role.</p>
-            <button className="ats-home-button" type="button" onClick={onBackHome}>
-              Back Home
-            </button>
+        <div
+          className={`result-banner ${
+            passed ? "passed" : "failed"
+          }`}
+        >
+          <h2>
+            {passed
+              ? "✅ ATS PASSED"
+              : "❌ ATS FAILED"}
+          </h2>
+
+          <p>
+            ATS Score:{" "}
+            <strong>
+              {atsResult.final_score}%
+            </strong>
+          </p>
+        </div>
+
+        <div className="skills-section">
+          <h2>Matched Skills</h2>
+
+          <div className="skill-list">
+            {atsResult.matched_skills.length > 0 ? (
+              atsResult.matched_skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="skill-chip matched"
+                >
+                  {skill} <br></br>
+                </span>
+              ))
+            ) : (
+              <p>No matched skills</p>
+            )}
           </div>
-        ) : (
-          <div className="decision-actions">
+        </div>
+
+        <div className="skills-section">
+          <h2>Missing Skills</h2>
+
+          <div className="skill-list">
+            {atsResult.missing_skills.length > 0 ? (
+              atsResult.missing_skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="skill-chip missing"
+                >
+                  {skill}<br></br>
+                </span>
+              ))
+            ) : (
+              <p>No missing skills</p>
+            )}
+          </div>
+        </div>
+
+        <div className="decision-actions">
+          {passed ? (
             <button
               className="decision-button passed"
-              type="button"
-              onClick={() => handleDecision("passed")}
-              disabled={Boolean(loadingDecision)}
+              onClick={onPassed}
             >
-              {loadingDecision === "passed" ? "Saving..." : "ATS Passed"}
+              Continue to Interview
             </button>
+          ) : (
             <button
               className="decision-button failed"
-              type="button"
-              onClick={() => handleDecision("failed")}
-              disabled={Boolean(loadingDecision)}
+              onClick={onBackHome}
             >
-              {loadingDecision === "failed" ? "Saving..." : "ATS Failed"}
+              Back Home
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {error && <p className="error-message">{error}</p>}
       </section>
     </main>
   );
 }
-
 
 function SummaryItem({ label, value }) {
   return (
@@ -100,6 +212,5 @@ function SummaryItem({ label, value }) {
     </article>
   );
 }
-
 
 export default AtsScreeningPage;
