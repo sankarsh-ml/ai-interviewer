@@ -46,8 +46,13 @@ function AtsScreeningPage({ applicationSummary, onBackHome, onPassed }) {
       <main className="ats-page">
         <section className="ats-panel">
           <h1>ATS Screening</h1>
-          <p className="ats-message">No resume application is available.</p>
-          <button className="ats-home-button" type="button" onClick={onBackHome}>
+
+          <p>No resume uploaded.</p>
+
+          <button
+            className="ats-home-button"
+            onClick={onBackHome}
+          >
             Back Home
           </button>
         </section>
@@ -134,7 +139,6 @@ function AtsScreeningPage({ applicationSummary, onBackHome, onPassed }) {
     </main>
   );
 }
-
 
 function SummaryItem({ label, value }) {
   return (

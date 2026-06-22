@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.routes.job_routes import router as job_router
 from app.routes.ats_routes import router as ats_router
 from app.routes.interview_routes import router as interview_router
 from app.routes.job_routes import router as job_router

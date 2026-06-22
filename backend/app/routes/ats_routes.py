@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from app.services.ats_engine import calculate_ats
 from app.services.db_service import (
@@ -8,13 +7,17 @@ from app.services.db_service import (
     update_ats_decision,
 )
 
+from app.services.ats_engine import calculate_ats
 
 router = APIRouter()
 
 
-class AtsDecisionRequest(BaseModel):
-    decision: str
+@router.get("/score/{application_id}")
+def score_resume(application_id: str):
 
+    application = get_application_by_id(
+        application_id
+    )
 
 @router.get("/score/{application_id}")
 def score_resume(application_id: str):
@@ -67,17 +70,18 @@ def score_resume(application_id: str):
 def save_ats_decision(application_id: str, request: AtsDecisionRequest):
     decision = request.decision.lower().strip()
 
-    if decision not in {"passed", "failed"}:
-        raise HTTPException(status_code=400, detail="Decision must be passed or failed")
+    job = get_job_by_id(
+        application["job_id"]
+    )
 
     was_updated = update_ats_decision(application_id, decision)
 
-    if not was_updated:
-        raise HTTPException(status_code=404, detail="Resume application not found")
+    sections = (
+        application["ats_ready_data"]
+        ["sections_detected"]
+    )
 
-    return {
-        "success": True,
-        "message": "ATS decision saved",
+    resume_data = {
         "data": {
             "application_id": application_id,
             "ats_status": decision,

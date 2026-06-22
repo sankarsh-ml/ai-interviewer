@@ -6,7 +6,7 @@ import HomePage from "./pages/HomePage.jsx";
 import HRDashboardPage from "./pages/HRDashboardPage.jsx";
 import InterviewPage from "./pages/InterviewPage.jsx";
 import StudentUploadPage from "./pages/StudentUploadPage.jsx";
-
+import HRDashboardPage from "./pages/HRDashboardPage.jsx";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("home");

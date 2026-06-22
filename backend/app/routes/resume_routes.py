@@ -67,7 +67,6 @@ async def _process_resume_upload(file: UploadFile):
         },
     }
 
-
 @router.post("/upload")
 async def upload_resume(
     resume_file: Optional[UploadFile] = File(None),
@@ -110,7 +109,6 @@ async def upload_resume(
             "next_step": "ats_screening",
         },
     }
-
 
 @router.post("/extract-text")
 async def extract_resume_text(file: UploadFile = File(...)):
