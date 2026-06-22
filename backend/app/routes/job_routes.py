@@ -1,10 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.db_service import (
-    save_job,
     get_all_jobs,
+    get_application_by_id,
+    list_applications,
+    save_job,
 )
+
 
 router = APIRouter()
 
@@ -19,7 +22,6 @@ class JobRequest(BaseModel):
 
 @router.post("/jobs")
 def create_job(job: JobRequest):
-
     job_id = save_job(
         {
             "title": job.title,
@@ -39,8 +41,28 @@ def create_job(job: JobRequest):
 
 @router.get("/jobs")
 def fetch_jobs():
-
     return {
         "success": True,
         "jobs": get_all_jobs(),
+    }
+
+
+@router.get("/applications")
+def fetch_applications():
+    return {
+        "success": True,
+        "applications": list_applications(),
+    }
+
+
+@router.get("/applications/{application_id}")
+def fetch_application(application_id: str):
+    application = get_application_by_id(application_id)
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    return {
+        "success": True,
+        "application": application,
     }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+
 import "../styles/HRDashboardPage.css";
+
 
 function HRDashboardPage({ onBack }) {
   const [title, setTitle] = useState("");
@@ -7,15 +9,15 @@ function HRDashboardPage({ onBack }) {
   const [education, setEducation] = useState("");
   const [experience, setExperience] = useState("");
   const [keywords, setKeywords] = useState("");
-
   const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/hr/jobs"
-      );
-
+      const response = await fetch("http://127.0.0.1:8000/api/hr/jobs");
       const data = await response.json();
 
       if (data.success) {
@@ -25,10 +27,6 @@ function HRDashboardPage({ onBack }) {
       console.error("Error fetching jobs:", error);
     }
   };
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
 
   const addJob = async () => {
     if (
@@ -43,32 +41,25 @@ function HRDashboardPage({ onBack }) {
     }
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/hr/jobs",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+      const response = await fetch("http://127.0.0.1:8000/api/hr/jobs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           title,
-
           required_skills: skills
             .split(",")
-            .map((s) => s.trim())
+            .map((skill) => skill.trim())
             .filter(Boolean),
-
           education,
-
           experience: Number(experience),
-
           keywords: keywords
             .split(",")
-            .map((s) => s.trim())
+            .map((keyword) => keyword.trim())
             .filter(Boolean),
         }),
-        }
-      );
+      });
 
       const data = await response.json();
 
@@ -78,7 +69,6 @@ function HRDashboardPage({ onBack }) {
         setEducation("");
         setExperience("");
         setKeywords("");
-
         fetchJobs();
       }
     } catch (error) {
@@ -89,7 +79,7 @@ function HRDashboardPage({ onBack }) {
   return (
     <main className="hr-page">
       <div className="hr-container">
-        <button className="back-button" onClick={onBack}>
+        <button className="back-button" type="button" onClick={onBack}>
           Back
         </button>
 
@@ -106,14 +96,14 @@ function HRDashboardPage({ onBack }) {
             type="text"
             placeholder="Job Title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
           />
 
           <textarea
             className="hr-textarea"
             placeholder="Required Skills (comma separated)"
             value={skills}
-            onChange={(e) => setSkills(e.target.value)}
+            onChange={(event) => setSkills(event.target.value)}
           />
 
           <input
@@ -121,7 +111,7 @@ function HRDashboardPage({ onBack }) {
             type="text"
             placeholder="Education Requirement"
             value={education}
-            onChange={(e) => setEducation(e.target.value)}
+            onChange={(event) => setEducation(event.target.value)}
           />
 
           <input
@@ -129,20 +119,17 @@ function HRDashboardPage({ onBack }) {
             type="number"
             placeholder="Required Experience (Years)"
             value={experience}
-            onChange={(e) => setExperience(e.target.value)}
+            onChange={(event) => setExperience(event.target.value)}
           />
 
           <textarea
             className="hr-textarea"
             placeholder="Keywords (comma separated)"
             value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
+            onChange={(event) => setKeywords(event.target.value)}
           />
 
-          <button
-            className="hr-button"
-            onClick={addJob}
-          >
+          <button className="hr-button" type="button" onClick={addJob}>
             Add Job
           </button>
         </div>
@@ -155,35 +142,21 @@ function HRDashboardPage({ onBack }) {
               <p>No jobs added yet.</p>
             ) : (
               jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="job-card"
-                >
+                <div key={job.id} className="job-card">
                   <h3>{job.title}</h3>
-
                   <p>
-                    <strong>Skills:</strong>{" "}
-                    {job.required_skills?.join(", ")}
+                    <strong>Skills:</strong> {job.required_skills?.join(", ")}
                   </p>
-
                   <p>
-                    <strong>Education:</strong>{" "}
-                    {job.education}
+                    <strong>Education:</strong> {job.education}
                   </p>
-
                   <p>
-                    <strong>Experience:</strong>{" "}
-                    {job.experience}
+                    <strong>Experience:</strong> {job.experience}
                   </p>
-
                   <p>
-                    <strong>Keywords:</strong>{" "}
-                    {job.keywords?.join(", ")}
+                    <strong>Keywords:</strong> {job.keywords?.join(", ")}
                   </p>
-
-                  <small>
-                    Job ID: {job.id}
-                  </small>
+                  <small>Job ID: {job.id}</small>
                 </div>
               ))
             )}
@@ -193,5 +166,6 @@ function HRDashboardPage({ onBack }) {
     </main>
   );
 }
+
 
 export default HRDashboardPage;

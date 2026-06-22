@@ -11,8 +11,9 @@ def calculate_ats(
 ):
 
     skill_result = calculate_skill_match(
-        resume["data"]["skills"],
-        jd["required_skills"]
+        resume["data"].get("raw_text", ""),
+        jd["required_skills"],
+        resume["data"].get("skills", []),
     )
 
     education_result = calculate_education_match(
@@ -30,15 +31,17 @@ def calculate_ats(
         jd["keywords"]
     )
 
-    final_score = calculate_final_ats(
+    weighted_score = calculate_final_ats(
         skill_result["score"],
         education_result["score"],
         experience_result["score"],
         project_result["score"]
     )
-    SHORTLIST_THRESHOLD = 75
+    ats_score = skill_result["score"]
+    SHORTLIST_THRESHOLD = 70
 
-    shortlisted = (final_score >= SHORTLIST_THRESHOLD)
+    shortlisted = (ats_score >= SHORTLIST_THRESHOLD)
+    status = "passed" if shortlisted else "failed"
     
     if shortlisted:
         interview_link = ("https://meet.google.com/interview-room")
@@ -51,11 +54,29 @@ def calculate_ats(
     "candidate_name":
         resume["data"]["candidate_name"],
 
+    "ats_score":
+        ats_score,
+
+    "atsScore":
+        ats_score,
+
     "final_score":
-        final_score,
+        ats_score,
+
+    "weighted_score":
+        weighted_score,
 
     "shortlisted":
         shortlisted,
+
+    "passed":
+        shortlisted,
+
+    "status":
+        status,
+
+    "ats_status":
+        status,
 
     "interview_link":
         interview_link,
